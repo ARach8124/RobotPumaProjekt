@@ -15,6 +15,9 @@ p.setGravity(0, 0, -9.81)
 # Wczytanie płaskiego podłoża
 planeId = p.loadURDF("plane.urdf")
 
+# Wczytanie kostki
+cubeId = p.loadURDF("kostka.urdf")
+
 # Wczytanie robota
 start_pos = [0, 0, 0] # Pozycja początkowa (x, y, z)
 start_ori = p.getQuaternionFromEuler([0, 0, 0]) # Orientacja początkowa (roll, pitch, yaw)
