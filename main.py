@@ -1,49 +1,42 @@
 import pybullet as p
 import pybullet_data
 import time
-import sys
+
+# 1. Uruchomienie symulatora z interfejsem graficznym
+physicsClient = p.connect(p.GUI)
+
+# Ustawienie ścieżki, aby móc załadować domyślne podłoże (plane.urdf)
+p.setAdditionalSearchPath(pybullet_data.getDataPath())
+
+# Ustawienie grawitacji (oś Z w dół)
+p.setGravity(0, 0, -9.81)
+
+# 2. Wczytanie płaskiego podłoża
+planeId = p.loadURDF("plane.urdf")
+
+# 3. Wczytanie Twojego robota
+# Parametr useFixedBase=True jest kluczowy dla ramion robotycznych, 
+# aby podstawa była "przykręcona" do podłoża i robot się nie przewrócił.
+start_pos = [0, 0, 0] # Pozycja początkowa (x, y, z)
+start_ori = p.getQuaternionFromEuler([0, 0, 0]) # Orientacja początkowa (roll, pitch, yaw)
 
 try:
-    print("Uruchamianie symulatora PyBullet...")
-    # 1. Uruchomienie symulatora
-    physicsClient = p.connect(p.GUI)
-    p.setAdditionalSearchPath(pybullet_data.getDataPath())
-    p.setGravity(0, 0, -9.81)
-
-    print("Wczytywanie podłoża...")
-    # 2. Wczytanie podłoża
-    planeId = p.loadURDF("plane.urdf")
-
-    print("Wczytywanie robota...")
-    # 3. Wczytanie Twojego robota
-    start_pos = [0, 0, 0.05]
-    start_orientation = p.getQuaternionFromEuler([0, 0, 0])
+    print("Wczytywanie model1.urdf...")
+    robotId = p.loadURDF("model1.urdf", start_pos, start_ori, useFixedBase=True)
+    print("Robot wczytany pomyślnie!")
     
-    # Tutaj najczęściej występuje błąd, jeśli pliku nie ma w folderze!
-    robotId = p.loadURDF("model1.urdf", start_pos, start_orientation, useFixedBase=True)
+except p.error as e:
+    print(f"Błąd podczas wczytywania URDF: {e}")
+    print("Upewnij się, że plik model1.urdf znajduje się w folderze ze skryptem.")
 
-    print("\nSUKCES! Symulacja działa.")
-    print("Aby zakończyć, po prostu zamknij okno graficzne PyBullet (iksem).")
-
-    # 4. Główna pętla programu
-    # Będzie działać tak długo, jak długo okno PyBullet jest otwarte
-    while p.isConnected():
+# 4. Pętla symulacji działająca w nieskończoność
+print("Symulacja uruchomiona. Naciśnij Ctrl+C w konsoli, aby zakończyć.")
+try:
+    while True:
         p.stepSimulation()
-        time.sleep(1./240.)
+        time.sleep(1.0 / 240.0) # Standardowe taktowanie PyBullet (240 Hz)
+except KeyboardInterrupt:
+    print("Zakończono symulację.")
 
-except Exception as e:
-    # 5. Przechwytywanie błędu
-    print("\n" + "="*40)
-    print("❌ WYSTĄPIŁ BŁĄD KRYTYCZNY:")
-    print(e)
-    print("="*40)
-
-    
-    # Ta linijka zatrzymuje zamykanie konsoli, dopóki nie wciśniesz Enter
-    input("\nWciśnij Enter, aby zamknąć to okno...")
-
-finally:
-    # 6. Bezpieczne rozłączenie przy zamykaniu
-    if p.isConnected():
-        p.disconnect()
-        
+# Sprzątanie po zakończeniu
+p.disconnect()
