@@ -19,21 +19,20 @@
       <origin xyz="0 0 0" rpy="0 0 0"/>
     </collision>
     <inertial>
-      <mass value="10.0"/>
+      <mass value="20.0"/>
       <origin xyz="0 0 0" rpy="0 0 0"/>
-      <inertia ixx="0.1354" ixy="0.0" ixz="0.0" iyy="0.1354" iyz="0.0" izz="0.2667"/>
+      <inertia ixx="0.2708" ixy="0.0" ixz="0.0" iyy="0.2708" iyz="0.0" izz="0.5333"/>
     </inertial>
   </link>
 
   <joint name="base_ramie_joint" type="revolute">
     <parent link="base_link"/>
     <child link="ramie_link"/>
-    
     <origin xyz="0 0 0.025" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <calibration rising="0.0"/>
     <dynamics damping="0.5" friction="0.2"/>
-    <limit effort="150" velocity="2.0" lower="-2.618" upper="2.618" />
+    <limit effort="400" velocity="2.0" lower="-2.618" upper="2.618" />
     <safety_controller k_velocity="10" k_position="15" soft_lower_limit="-2.8" soft_upper_limit="2.8" />
   </joint>
 
@@ -43,20 +42,16 @@
       <origin xyz="0 0 0.15" rpy="0 0 0"/>
       <material name="bialy"/>
     </visual>
-
-
     <collision>
       <geometry><box size="0.2 0.2 0.4"/></geometry>
       <origin xyz="0 0 0.2" rpy="0 0 0"/>
     </collision>
     <inertial>
-      <mass value="3.0"/>
+      <mass value="8.0"/>
       <origin xyz="0 0 0.1" rpy="0 0 0"/>
-      <inertia ixx="0.0125" ixy="0.0" ixz="0.0" iyy="0.0125" iyz="0.0" izz="0.005"/>
+      <inertia ixx="0.1333" ixy="0.0" ixz="0.0" iyy="0.1333" iyz="0.0" izz="0.0533"/>
     </inertial>
   </link>
-
-
 
   <joint name="ramie_ramie2_joint" type="revolute">
     <parent link="ramie_link"/>
@@ -65,7 +60,7 @@
     <axis xyz="1 0 0"/>
     <calibration rising="0.0"/>
     <dynamics damping="1.0" friction="0.5"/>
-    <limit effort="150" velocity="2.0" lower="-1.0" upper="1.75" />
+    <limit effort="400" velocity="2.0" lower="-1.0" upper="1.75" />
     <safety_controller k_velocity="10" k_position="15" soft_lower_limit="-1.9" soft_upper_limit="1.9" />
   </joint>
 
@@ -75,21 +70,19 @@
       <origin xyz="0 0 0.3" rpy="0 0 0"/>
       <material name="bialy"/>
     </visual>
-
     <visual>
       <geometry><cylinder radius="0.14" length="0.37"/></geometry>
       <origin xyz="-0.09 0 0" rpy="0 1.57 0"/>
       <material name="bialy"/>
     </visual>
-
     <collision>
       <geometry><box size="0.1 0.1 0.6"/></geometry>
       <origin xyz="0 0 0.3" rpy="0 0 0"/>
     </collision>
     <inertial>
-      <mass value="4.0"/>
+      <mass value="10.0"/>
       <origin xyz="0 0 0.3" rpy="0 0 0"/>
-      <inertia ixx="0.1233" ixy="0.0" ixz="0.0" iyy="0.1233" iyz="0.0" izz="0.0067"/>
+      <inertia ixx="0.3083" ixy="0.0" ixz="0.0" iyy="0.3083" iyz="0.0" izz="0.0167"/>
     </inertial>
   </link>
 
@@ -100,7 +93,7 @@
     <axis xyz="1 0 0"/>
     <calibration rising="0.0"/>
     <dynamics damping="0.5" friction="0.2"/>
-    <limit effort="100" velocity="2.0" lower="-2.3" upper="2.4" />
+    <limit effort="250" velocity="2.0" lower="-2.3" upper="2.4" />
     <safety_controller k_velocity="10" k_position="15" soft_lower_limit="-2.4" soft_upper_limit="2.4" />
   </joint>
 
@@ -110,61 +103,48 @@
       <origin xyz="0 0 0.25" rpy="0 0 0"/>
       <material name="bialy"/>
     </visual>
-
     <visual>
       <geometry><cylinder radius="0.08" length="0.30"/></geometry>
       <origin xyz="0.075 0 0" rpy="0 1.57 0"/>
       <material name="bialy"/>
     </visual>
-
-
     <collision>
       <geometry><box size="0.1 0.1 0.5"/></geometry>
       <origin xyz="0 0 0.25" rpy="0 0 0"/>
     </collision>
     <inertial>
-      <mass value="2.0"/>
+      <mass value="5.0"/>
       <origin xyz="0 0 0.25" rpy="0 0 0"/>
-      <inertia ixx="0.0433" ixy="0.0" ixz="0.0" iyy="0.0433" iyz="0.0" izz="0.0033"/>
+      <inertia ixx="0.1083" ixy="0.0" ixz="0.0" iyy="0.1083" iyz="0.0" izz="0.0083"/>
     </inertial>
   </link>
 
-<joint name="ramie3_manipulator_joint" type="fixed">
+  <joint name="ramie3_manipulator_joint" type="fixed">
     <parent link="ramie3_link"/>
     <child link="manipulator_link"/> 
-    <!-- ramie3_link is 0.5m long, so attach the sphere at the very tip (z=0.5) -->
     <origin xyz="0 0 0.5" rpy="0 0 0"/>
   </joint>
 
   <link name="manipulator_link">
     <visual>
-      <!-- Centered to match collision and physics -->
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <!-- Standardized to 0.08 radius -->
         <sphere radius="0.08"/>
       </geometry>
       <material name="czerwony">
         <color rgba="1 0 0 1"/>
       </material>
     </visual>
-    
     <collision>
-      <!-- Matches visual perfectly so PyBullet collisions are accurate -->
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
         <sphere radius="0.08"/>
       </geometry>
     </collision>
-    
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="0.2"/>
-      <!-- Accurate inertia for a 0.2kg solid sphere with 0.08m radius -->
-      <!-- Formula: I = 2/5 * m * r^2 -->
-      <inertia ixx="0.000512" ixy="0.0" ixz="0.0" 
-               iyy="0.000512" iyz="0.0" 
-               izz="0.000512"/>
+      <inertia ixx="0.000512" ixy="0.0" ixz="0.0" iyy="0.000512" iyz="0.0" izz="0.000512"/>
     </inertial>
   </link>
 
