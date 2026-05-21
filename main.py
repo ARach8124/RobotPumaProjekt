@@ -38,13 +38,28 @@ try:
         joint_type = joint_info[2]
         joint_name = joint_info[1].decode("utf-8")
         
-        # Odrzucamy stawy sztywne (p.JOINT_FIXED = 4)
         if joint_type != p.JOINT_FIXED:
             movable_joints.append(i)
-            # Tworzymy suwak dla stawu (zakres od -pi do pi, start na 0)
-            slider = p.addUserDebugParameter(joint_name, -math.pi, math.pi, 0)
+            
+            # --- EXTRACT LIMITS ---
+            lower_limit = joint_info[8]
+            upper_limit = joint_info[9]
+            
+            # PyBullet sets lower > upper (e.g. 0 and -1) if no limits are defined 
+            # in the URDF (like for continuous joints). We need a fallback.
+            if lower_limit < upper_limit:
+                slider_min = lower_limit
+                slider_max = upper_limit
+            else:
+                slider_min = -math.pi
+                slider_max = math.pi
+                
+            # Create slider using the extracted limits
+            slider = p.addUserDebugParameter(joint_name, slider_min, slider_max, 0)
             sliders.append(slider)
-            print(f"- {joint_name} (Indeks: {i})")
+            
+            print(f"- {joint_name} (Indeks: {i}, Zakres: {slider_min:.2f} do {slider_max:.2f})")
+
     # -------------------------------------------------------------
     
 except p.error as e:
