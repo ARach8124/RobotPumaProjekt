@@ -33,19 +33,21 @@
     <axis xyz="0 0 1"/>
     <calibration rising="0.0"/>
     <dynamics damping="0.5" friction="0.2"/>
-    <limit effort="150" velocity="2.0" lower="-2.9" upper="2.9" />
+    <limit effort="150" velocity="2.0" lower="-2.618" upper="2.618" />
     <safety_controller k_velocity="10" k_position="15" soft_lower_limit="-2.8" soft_upper_limit="2.8" />
   </joint>
 
   <link name="ramie_link">
     <visual>
-      <geometry><box size="0.1 0.1 0.2"/></geometry>
-      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <geometry><box size="0.2 0.2 0.3"/></geometry>
+      <origin xyz="0 0 0.15" rpy="0 0 0"/>
       <material name="bialy"/>
     </visual>
+
+
     <collision>
-      <geometry><box size="0.13 0.13 0.2"/></geometry>
-      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <geometry><box size="0.2 0.2 0.4"/></geometry>
+      <origin xyz="0 0 0.2" rpy="0 0 0"/>
     </collision>
     <inertial>
       <mass value="3.0"/>
@@ -54,23 +56,32 @@
     </inertial>
   </link>
 
+
+
   <joint name="ramie_ramie2_joint" type="revolute">
     <parent link="ramie_link"/>
     <child link="ramie2_link"/>
-    <origin xyz="0 0 0.2" rpy="1 0 0"/>
+    <origin xyz="0.16 0 0.3" rpy="0 0 0"/>
     <axis xyz="1 0 0"/>
     <calibration rising="0.0"/>
     <dynamics damping="1.0" friction="0.5"/>
-    <limit effort="150" velocity="2.0" lower="-2.0" upper="2.0" />
+    <limit effort="150" velocity="2.0" lower="-1.0" upper="1.75" />
     <safety_controller k_velocity="10" k_position="15" soft_lower_limit="-1.9" soft_upper_limit="1.9" />
   </joint>
 
   <link name="ramie2_link">
     <visual>
-      <geometry><box size="0.1 0.1 0.6"/></geometry>
+      <geometry><box size="0.14 0.14 0.6"/></geometry>
       <origin xyz="0 0 0.3" rpy="0 0 0"/>
       <material name="bialy"/>
     </visual>
+
+    <visual>
+      <geometry><cylinder radius="0.14" length="0.37"/></geometry>
+      <origin xyz="-0.09 0 0" rpy="0 1.57 0"/>
+      <material name="bialy"/>
+    </visual>
+
     <collision>
       <geometry><box size="0.1 0.1 0.6"/></geometry>
       <origin xyz="0 0 0.3" rpy="0 0 0"/>
@@ -85,11 +96,11 @@
   <joint name="ramie2_ramie3_joint" type="revolute">
     <parent link="ramie2_link"/>
     <child link="ramie3_link"/>
-    <origin xyz="0 0 0.6" rpy="-1 0 0"/>
+    <origin xyz="-0.14 0 0.6" rpy="0 0 0"/>
     <axis xyz="1 0 0"/>
     <calibration rising="0.0"/>
     <dynamics damping="0.5" friction="0.2"/>
-    <limit effort="100" velocity="2.0" lower="-2.5" upper="2.5" />
+    <limit effort="100" velocity="2.0" lower="-2.3" upper="2.4" />
     <safety_controller k_velocity="10" k_position="15" soft_lower_limit="-2.4" soft_upper_limit="2.4" />
   </joint>
 
@@ -99,6 +110,14 @@
       <origin xyz="0 0 0.25" rpy="0 0 0"/>
       <material name="bialy"/>
     </visual>
+
+    <visual>
+      <geometry><cylinder radius="0.08" length="0.30"/></geometry>
+      <origin xyz="0.075 0 0" rpy="0 1.57 0"/>
+      <material name="bialy"/>
+    </visual>
+
+
     <collision>
       <geometry><box size="0.1 0.1 0.5"/></geometry>
       <origin xyz="0 0 0.25" rpy="0 0 0"/>
