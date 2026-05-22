@@ -127,14 +127,15 @@
 
   <link name="manipulator_link">
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0 0 0.08" rpy="0 0 0"/>
       <geometry>
         <sphere radius="0.08"/>
       </geometry>
       <material name="czerwony">
-        <color rgba="1 0 0 1"/>
+        <color rgba="1 0 0 0.5"/>
       </material>
     </visual>
+    <!-- 
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
@@ -145,7 +146,8 @@
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="0.2"/>
       <inertia ixx="0.000512" ixy="0.0" ixz="0.0" iyy="0.000512" iyz="0.0" izz="0.000512"/>
-    </inertial>
+    </inertial> 
+    -->
   </link>
 
 </robot>
