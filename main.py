@@ -101,7 +101,6 @@ class Robot:
         return [best_t1, best_t2, best_t3]
 
     def update_from_sliders(self):
-<<<<<<< HEAD
         if not self.use_ik:
             for i, joint_idx in enumerate(self.movable_joints):
                 target_angle = p.readUserDebugParameter(self.sliders[i])
@@ -171,8 +170,8 @@ class Robot:
                 jointAxis=[0, 0, 0],
                 parentFramePosition=rel_pos,
                 childFramePosition=[0, 0, 0],
-                parentFrameOrientation=rel_ori
-=======
+                parentFrameOrientation=rel_ori)
+            
         for i, joint_idx in enumerate(self.movable_joints):
             target_angle = p.readUserDebugParameter(self.sliders[i])
             # Funkcja PyBullet do sterowania pozycją
@@ -182,7 +181,6 @@ class Robot:
                 controlMode=p.POSITION_CONTROL,
                 targetPosition=target_angle,
                 force=400
->>>>>>> f758218d88cf34d253e14a6ab564b4a3941e295f
             )
             self.is_grabbing = True
         else:
@@ -377,12 +375,7 @@ class Simulation:
             print(" [M]      - Przełącz tryb FK / IK\n")
             
             while True:
-<<<<<<< HEAD
-                if self.robot:
-                    self.robot.update_from_sliders()
                 self.handle_keyboard()
-=======
->>>>>>> 4a45d0e2ec2c7d4ffb377c5f27826d2d1aa37ada
                 p.stepSimulation()
                 self.camera.handle_camera()
                 
