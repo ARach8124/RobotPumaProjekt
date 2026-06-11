@@ -63,7 +63,6 @@ class Robot:
                 force=100
             )
 
-
 class Simulation:
     def __init__(self):
         # Inicjalizacja PyBullet
@@ -80,17 +79,73 @@ class Simulation:
             print("Nie udało się wczytać kostki.")
             
         self.robot = None
+        # Podstawowe ustawienia kamery
+        self.yaw = 0.0
+        self.pitch = -20.0
+        self.dist = 5.0
+        self.target_pos = [0, 0, 0]
+        self.lmb_pressed = False
+        self.prev_x = 0.0
+        self.prev_y = 0.0
+        self.sensitivity = 0.2
+        self.custom_camera_enabled = False
+        p.resetDebugVisualizerCamera(self.dist, self.yaw, self.pitch, self.target_pos)
 
     def add_robot(self, robot):
         self.robot = robot
+        
+    def toggle_c(self):
+        keys = p.getKeyboardEvents()
+        if ord('c') in keys:  
+            if keys[ord('c')] & p.KEY_WAS_TRIGGERED:
+                self.custom_camera_enabled = not self.custom_camera_enabled
+
+    def handle_camera(self):
+        self.toggle_c()
+        if self.custom_camera_enabled == True:
+            if self.custom_camera_enabled:
+                mouse_events = p.getMouseEvents()
+                for event in mouse_events:
+                    event_type = event[0]
+                    mouse_x = event[1]
+                    mouse_y = event[2]
+                    
+                    if event_type == 2:
+                        button_index = event[3]
+                        button_state = event[4]
+            
+                        if button_index == 0:
+                            if button_state == 3:       
+                                self.lmb_pressed = True
+                                self.prev_x = mouse_x
+                                self.prev_y = mouse_y
+                            elif button_state == 4:     
+                                self.lmb_pressed = False
+
+                    elif event_type == 1:
+                        # Zmieniamy parametry yaw/pitch TYLKO, gdy system jest włączony
+                        if self.lmb_pressed and self.custom_camera_enabled:
+                            dx = mouse_x - self.prev_x
+                            dy = mouse_y - self.prev_y
+                
+                            self.yaw -= dx * self.sensitivity
+                            self.pitch -= dy * self.sensitivity
+                
+                            if self.pitch > 89.0: self.pitch = 89.0
+                            if self.pitch < -89.0: self.pitch = -89.0
+                
+                            p.resetDebugVisualizerCamera(self.dist, self.yaw, self.pitch, self.target_pos)
+                            
+                            self.prev_x = mouse_x
+                            self.prev_y = mouse_y
 
     def run(self):
         # Główna pętla symualacji    
         print("\nSymulacja uruchomiona.")
         try:
             while True:
-                self.robot.update_from_sliders()
                 p.stepSimulation()
+                self.handle_camera()  # Wywołanie obsługi kamery
                 time.sleep(1.0 / 240.0)
                 
         except KeyboardInterrupt:
@@ -100,6 +155,9 @@ class Simulation:
 
     def cleanup(self):
         p.disconnect()
+    
+    
+    
 
 
 if __name__ == "__main__":
