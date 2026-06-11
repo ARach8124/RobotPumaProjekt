@@ -13,7 +13,8 @@ class Robot:
         self.movable_joints = []
         self.sliders = []
         
-        # Grab state variables managed by the Robot
+        self.use_ik = False 
+        
         self.is_grabbing = False
         self.grab_constraint_id = None
         
@@ -32,6 +33,7 @@ class Robot:
     def _setup_joints_and_sliders(self):
         num_joints = p.getNumJoints(self.robot_id)
         
+        # Setup dla kinematyki prostej
         for i in range(num_joints):
             joint_info = p.getJointInfo(self.robot_id, i)
             joint_type = joint_info[2]
@@ -43,7 +45,6 @@ class Robot:
                 lower_limit = joint_info[8]
                 upper_limit = joint_info[9]
                 
-                # Ustalanie zakresu suwaka
                 if lower_limit < upper_limit:
                     slider_min = lower_limit
                     slider_max = upper_limit
@@ -51,64 +52,115 @@ class Robot:
                     slider_min = -math.pi
                     slider_max = math.pi
                     
-                slider = p.addUserDebugParameter(joint_name, slider_min, slider_max, 0)
+                slider = p.addUserDebugParameter(f"FK: {joint_name}", slider_min, slider_max, 0)
                 self.sliders.append(slider)
                 
+        # Setup suwaków dla kinematyki odwrotnej
+        self.ik_x_slider = p.addUserDebugParameter("IK_Target_X", -1.2, 1.2, 0.4)
+        self.ik_y_slider = p.addUserDebugParameter("IK_Target_Y", -1.2, 1.2, 0.0)
+        self.ik_z_slider = p.addUserDebugParameter("IK_Target_Z", 0.0, 1.6, 0.6)
+
+    def toggle_mode(self):
+        self.use_ik = not self.use_ik
+        aktualny_tryb = "IK (Kinematyka Odwrotna)" if self.use_ik else "FK (Kinematyka Prosta)"
+        print(f"Przełączono na tryb: {aktualny_tryb}")
+
+    def ik_analytical(self, x, y, z):
+        z_base_offset = 0.025 + 0.3  
+        x_offset = 0.16 - 0.14       
+        L1 = 0.6                     
+        L2 = 0.5                    
+        
+        R2 = x**2 + y**2
+        if R2 < x_offset**2:
+            return None
+            
+        y_plan = math.sqrt(R2 - x_offset**2)
+        theta1 = math.atan2(y, x) - math.atan2(-y_plan, x_offset)
+        theta1 = (theta1 + math.pi) % (2 * math.pi) - math.pi
+        
+        z_plan = z - z_base_offset
+        D = (z_plan**2 + y_plan**2 - L1**2 - L2**2) / (2 * L1 * L2)
+        D = max(-1.0, min(1.0, D))
+        
+        best_t2, best_t3 = 0, 0
+        valid_solution_found = False
+        
+        for sign in [1, -1]:
+            t3 = sign * math.acos(D)
+            t2 = math.atan2(y_plan, z_plan) - math.atan2(L2 * math.sin(t3), L1 + L2 * math.cos(t3))
+            
+            t2 = (t2 + math.pi) % (2 * math.pi) - math.pi
+            t3 = (t3 + math.pi) % (2 * math.pi) - math.pi
+            
+            if -1.0 <= t2 <= 1.75 and -2.3 <= t3 <= 2.4:
+                best_t2, best_t3 = t2, t3
+                break
+                
+        best_t1 = max(-2.618, min(2.618, theta1))
+        return [best_t1, best_t2, best_t3]
+
     def update_from_sliders(self):
-        for i, joint_idx in enumerate(self.movable_joints):
-            target_angle = p.readUserDebugParameter(self.sliders[i])
-            # Funkcja PyBullet do sterowania pozycją
-            p.setJointMotorControl2(
-                bodyIndex=self.robot_id,
-                jointIndex=joint_idx,
-                controlMode=p.POSITION_CONTROL,
-                targetPosition=target_angle,
-                force=100
-            )
+        if not self.use_ik:
+            for i, joint_idx in enumerate(self.movable_joints):
+                target_angle = p.readUserDebugParameter(self.sliders[i])
+                p.setJointMotorControl2(
+                    bodyIndex=self.robot_id,
+                    jointIndex=joint_idx,
+                    controlMode=p.POSITION_CONTROL,
+                    targetPosition=target_angle,
+                    force=400
+                )
+        else:
+            x = p.readUserDebugParameter(self.ik_x_slider)
+            y = p.readUserDebugParameter(self.ik_y_slider)
+            z = p.readUserDebugParameter(self.ik_z_slider)
+            
+            target_angles = self.ik_analytical(x, y, z)
+            
+            if target_angles:
+                for i, joint_idx in enumerate(self.movable_joints):
+                    p.setJointMotorControl2(
+                        bodyIndex=self.robot_id,
+                        jointIndex=joint_idx,
+                        controlMode=p.POSITION_CONTROL,
+                        targetPosition=target_angles[i],
+                        force=400
+                    )
 
     def get_link_index(self, link_name):
-        """Helper to find the PyBullet link index by its URDF name."""
         for i in range(p.getNumJoints(self.robot_id)):
             if p.getJointInfo(self.robot_id, i)[12].decode("utf-8") == link_name:
                 return i
         return -1
 
     def toggle_grab(self, target_id):
-        """Wrapper to easily switch between grabbing and releasing."""
         if not self.is_grabbing:
             self.grab(target_id)
         else:
             self.release(target_id)
 
     def grab(self, target_id):
-        """Locks the target object to the manipulator, preserving its current relative position."""
         ee_idx = self.get_link_index("manipulator_link")
         if ee_idx == -1:
             print("Manipulator link not found!")
             return
 
-        # Get positions of the end-effector and the target object
         ee_state = p.getLinkState(self.robot_id, ee_idx)
-        ee_pos = ee_state[4] # linkWorldPosition
-        ee_ori = ee_state[5] # linkWorldOrientation
+        ee_pos = ee_state[4] 
+        ee_ori = ee_state[5] 
         target_pos, target_ori = p.getBasePositionAndOrientation(target_id)
 
-        # Calculate distance
         dist = math.sqrt(sum((a - b)**2 for a, b in zip(ee_pos, target_pos)))
 
-        # Distance threshold (0.15 meters)
         if dist < 0.15:
             print("Chwytam obiekt w jego obecnej pozycji!")
-            
-            # Disable collisions between robot and the object
             for i in range(-1, p.getNumJoints(self.robot_id)):
                 p.setCollisionFilterPair(self.robot_id, target_id, i, -1, enableCollision=0)
 
-            # Calculate relative position and orientation so it doesn't snap to center
             inv_ee_pos, inv_ee_ori = p.invertTransform(ee_pos, ee_ori)
             rel_pos, rel_ori = p.multiplyTransforms(inv_ee_pos, inv_ee_ori, target_pos, target_ori)
 
-            # Create the constraint using the calculated offset
             self.grab_constraint_id = p.createConstraint(
                 parentBodyUniqueId=self.robot_id,
                 parentLinkIndex=ee_idx,
@@ -125,15 +177,10 @@ class Robot:
             print("Obiekt jest za daleko!")
 
     def release(self, target_id):
-        """Removes the constraint and restores collisions."""
-        print("Puszczam obiekt!")
-        
-        # Remove constraint
         if self.grab_constraint_id is not None:
             p.removeConstraint(self.grab_constraint_id)
             self.grab_constraint_id = None
             
-        # Re-enable collisions
         for i in range(-1, p.getNumJoints(self.robot_id)):
             p.setCollisionFilterPair(self.robot_id, target_id, i, -1, enableCollision=1)
             
@@ -142,16 +189,12 @@ class Robot:
 
 class Simulation:
     def __init__(self):
-        # Inicjalizacja PyBullet
         self.physicsClient = p.connect(p.GUI)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.setGravity(0, 0, -9.81)
-        
-        # Wczytanie środowiska domyślnego
         self.plane_id = p.loadURDF("plane.urdf")
         
         try:
-            # Moved closer so the arm can reach it easily
             self.cube_id = p.loadURDF("kostka.urdf", [0, -0.4, 0.4])
         except p.error:
             print("Nie udało się wczytać kostki.")
@@ -163,18 +206,23 @@ class Simulation:
         self.robot = robot
 
     def handle_keyboard(self):
-        """Checks for keyboard input 'c'."""
         keys = p.getKeyboardEvents()
-        g_key = ord('c')
         
-        # Check if 'g' was just triggered
-        if g_key in keys and keys[g_key] & p.KEY_WAS_TRIGGERED:
-            if self.robot and self.cube_id is not None:
-                self.robot.toggle_grab(self.cube_id)
+        space_key = ord(' ')
+        m_key = ord('m')
+        
+        if space_key in keys and keys[space_key] & p.KEY_WAS_TRIGGERED:
+            self.robot.toggle_grab(self.cube_id)
+                
+        if m_key in keys and keys[m_key] & p.KEY_WAS_TRIGGERED:
+            self.robot.toggle_mode()
 
     def run(self):
-        print("\nSymulacja uruchomiona. Wciśnij 'g' na klawiaturze (w oknie symulacji), aby chwycić/puścić kostkę.")
         try:
+            print("\nSterowanie:")
+            print(" [SPACJA] - Chwyć / Puść kostkę")
+            print(" [M]      - Przełącz tryb FK / IK\n")
+            
             while True:
                 if self.robot:
                     self.robot.update_from_sliders()
@@ -190,13 +238,8 @@ class Simulation:
     def cleanup(self):
         p.disconnect()
 
-
 if __name__ == "__main__":
-    # Stworzenie symulacji
     sim = Simulation()
-    # Wczytanie robota
     my_robot = Robot("model1.urdf")
-    # Dodanie robota do symulacji
     sim.add_robot(my_robot)
-    # Uruchomienie symulacji
     sim.run()
