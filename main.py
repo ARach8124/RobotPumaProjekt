@@ -63,23 +63,8 @@ class Robot:
                 force=100
             )
 
-class Simulation:
+class Camera:
     def __init__(self):
-        # Inicjalizacja PyBullet
-        self.physicsClient = p.connect(p.GUI)
-        p.setAdditionalSearchPath(pybullet_data.getDataPath())
-        p.setGravity(0, 0, -9.81)
-        
-        # Wczytanie środowiska domyślnego
-        self.plane_id = p.loadURDF("plane.urdf")
-        
-        try:
-            self.cube_id = p.loadURDF("kostka.urdf", [0,-1,1])
-        except p.error:
-            print("Nie udało się wczytać kostki.")
-            
-        self.robot = None
-        # Podstawowe ustawienia kamery
         self.yaw = 0.0
         self.pitch = -20.0
         self.dist = 5.0
@@ -90,16 +75,12 @@ class Simulation:
         self.sensitivity = 0.2
         self.custom_camera_enabled = False
         p.resetDebugVisualizerCamera(self.dist, self.yaw, self.pitch, self.target_pos)
-
-    def add_robot(self, robot):
-        self.robot = robot
-        
+    
     def toggle_c(self):
         keys = p.getKeyboardEvents()
         if ord('c') in keys:  
             if keys[ord('c')] & p.KEY_WAS_TRIGGERED:
                 self.custom_camera_enabled = not self.custom_camera_enabled
-
     def handle_camera(self):
         self.toggle_c()
         if self.custom_camera_enabled == True:
@@ -138,6 +119,51 @@ class Simulation:
                             
                             self.prev_x = mouse_x
                             self.prev_y = mouse_y
+        
+
+class Simulation:
+    def __init__(self):
+        # Inicjalizacja PyBullet
+        self.physicsClient = p.connect(p.GUI)
+        p.setAdditionalSearchPath(pybullet_data.getDataPath())
+        p.setGravity(0, 0, -9.81)
+        
+        # Wczytanie środowiska domyślnego
+        self.plane_id = p.loadURDF("plane.urdf")
+        
+        try:
+            self.cube_id = p.loadURDF("kostka.urdf", [0,-1,1])
+        except p.error:
+            print("Nie udało się wczytać kostki.")
+            
+        self.robot = None
+        
+        self.camera = Camera()
+        p.configureDebugVisualizer(p.COV_ENABLE_RGB_BUFFER_PREVIEW, 0)
+        p.configureDebugVisualizer(p.COV_ENABLE_DEPTH_BUFFER_PREVIEW, 0)
+        p.configureDebugVisualizer(p.COV_ENABLE_SEGMENTATION_MARK_PREVIEW, 0)
+        #Do uczenia
+        self.previous_click=0
+        self.uczenie_toggle=False
+        self.przycisk_uczenie_on=p.addUserDebugParameter("Tryb Uczenia", 1, 0, 0)
+    def add_robot(self, robot):
+        self.robot = robot
+                            
+    def przycisk_uczenia(self):
+        self.uczenie_on=p.readUserDebugParameter(self.przycisk_uczenie_on)
+        current_click=self.uczenie_on
+        if current_click>self.previous_click:
+            self.previous_click=current_click
+            self.uczenie_toggle = not self.uczenie_toggle
+            if self.uczenie_toggle:
+                print("Tryb uczenia włączony")
+            else:
+                print("Tryb uczenia wyłączony")
+                            
+    def tryb_uczenia(self):
+        self.przycisk_uczenia()
+        if self.uczenie_toggle:
+            p.readUserDebugParameter(self.przycisk_uczenie_on)
 
     def run(self):
         # Główna pętla symualacji    
@@ -145,7 +171,10 @@ class Simulation:
         try:
             while True:
                 p.stepSimulation()
-                self.handle_camera()  # Wywołanie obsługi kamery
+                self.camera.handle_camera()
+                if self.robot is not None:
+                    self.robot.update_from_sliders()
+                #self.tryb_uczenia()
                 time.sleep(1.0 / 240.0)
                 
         except KeyboardInterrupt:
