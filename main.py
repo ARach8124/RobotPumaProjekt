@@ -186,6 +186,63 @@ class Robot:
             
         self.is_grabbing = False
 
+class Camera:
+    def __init__(self):
+        self.yaw = 0.0
+        self.pitch = -20.0
+        self.dist = 5.0
+        self.target_pos = [0, 0, 0]
+        self.lmb_pressed = False
+        self.prev_x = 0.0
+        self.prev_y = 0.0
+        self.sensitivity = 0.2
+        self.custom_camera_enabled = False
+        p.resetDebugVisualizerCamera(self.dist, self.yaw, self.pitch, self.target_pos)
+    
+    def toggle_c(self):
+        keys = p.getKeyboardEvents()
+        if ord('c') in keys:  
+            if keys[ord('c')] & p.KEY_WAS_TRIGGERED:
+                self.custom_camera_enabled = not self.custom_camera_enabled
+    def handle_camera(self):
+        self.toggle_c()
+        if self.custom_camera_enabled == True:
+            if self.custom_camera_enabled:
+                mouse_events = p.getMouseEvents()
+                for event in mouse_events:
+                    event_type = event[0]
+                    mouse_x = event[1]
+                    mouse_y = event[2]
+                    
+                    if event_type == 2:
+                        button_index = event[3]
+                        button_state = event[4]
+            
+                        if button_index == 0:
+                            if button_state == 3:       
+                                self.lmb_pressed = True
+                                self.prev_x = mouse_x
+                                self.prev_y = mouse_y
+                            elif button_state == 4:     
+                                self.lmb_pressed = False
+
+                    elif event_type == 1:
+                        # Zmieniamy parametry yaw/pitch TYLKO, gdy system jest włączony
+                        if self.lmb_pressed and self.custom_camera_enabled:
+                            dx = mouse_x - self.prev_x
+                            dy = mouse_y - self.prev_y
+                
+                            self.yaw -= dx * self.sensitivity
+                            self.pitch -= dy * self.sensitivity
+                
+                            if self.pitch > 89.0: self.pitch = 89.0
+                            if self.pitch < -89.0: self.pitch = -89.0
+                
+                            p.resetDebugVisualizerCamera(self.dist, self.yaw, self.pitch, self.target_pos)
+                            
+                            self.prev_x = mouse_x
+                            self.prev_y = mouse_y
+        
 
 class Simulation:
     def __init__(self):
@@ -201,9 +258,33 @@ class Simulation:
             self.cube_id = None
             
         self.robot = None
-
+        
+        self.camera = Camera()
+        p.configureDebugVisualizer(p.COV_ENABLE_RGB_BUFFER_PREVIEW, 0)
+        p.configureDebugVisualizer(p.COV_ENABLE_DEPTH_BUFFER_PREVIEW, 0)
+        p.configureDebugVisualizer(p.COV_ENABLE_SEGMENTATION_MARK_PREVIEW, 0)
+        #Do uczenia
+        self.previous_click=0
+        self.uczenie_toggle=False
+        self.przycisk_uczenie_on=p.addUserDebugParameter("Tryb Uczenia", 1, 0, 0)
     def add_robot(self, robot):
         self.robot = robot
+                            
+    def przycisk_uczenia(self):
+        self.uczenie_on=p.readUserDebugParameter(self.przycisk_uczenie_on)
+        current_click=self.uczenie_on
+        if current_click>self.previous_click:
+            self.previous_click=current_click
+            self.uczenie_toggle = not self.uczenie_toggle
+            if self.uczenie_toggle:
+                print("Tryb uczenia włączony")
+            else:
+                print("Tryb uczenia wyłączony")
+                            
+    def tryb_uczenia(self):
+        self.przycisk_uczenia()
+        if self.uczenie_toggle:
+            p.readUserDebugParameter(self.przycisk_uczenie_on)
 
     def handle_keyboard(self):
         keys = p.getKeyboardEvents()
@@ -224,10 +305,17 @@ class Simulation:
             print(" [M]      - Przełącz tryb FK / IK\n")
             
             while True:
+<<<<<<< HEAD
                 if self.robot:
                     self.robot.update_from_sliders()
                 self.handle_keyboard()
+=======
+>>>>>>> 4a45d0e2ec2c7d4ffb377c5f27826d2d1aa37ada
                 p.stepSimulation()
+                self.camera.handle_camera()
+                if self.robot is not None:
+                    self.robot.update_from_sliders()
+                #self.tryb_uczenia()
                 time.sleep(1.0 / 240.0)
                 
         except KeyboardInterrupt:
@@ -237,6 +325,9 @@ class Simulation:
 
     def cleanup(self):
         p.disconnect()
+    
+    
+    
 
 if __name__ == "__main__":
     sim = Simulation()
