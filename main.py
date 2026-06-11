@@ -60,7 +60,7 @@ class Robot:
                 jointIndex=joint_idx,
                 controlMode=p.POSITION_CONTROL,
                 targetPosition=target_angle,
-                force=100
+                force=400
             )
 
 class Camera:
@@ -120,6 +120,83 @@ class Camera:
                             self.prev_x = mouse_x
                             self.prev_y = mouse_y
         
+class tryb_uczenia:
+    def __init__(self, robot):
+        self.robot = robot
+        
+        self.previous_click = 0
+        self.uczenie_toggle = False
+        self.przycisk_uczenie_on = p.addUserDebugParameter("Tryb Uczenia", 1, 0, 0)
+        
+        self.btn_play = p.addUserDebugParameter("Odtworz Nagranie", 1, 0, 0)
+        self.prev_play_clicks = 0
+        self.is_playing = False
+        
+        self.trajectory = []
+        self.playback_step = 0
+        self.prep_step = 0  
+
+    def przycisk_uczenia(self):
+        self.uczenie_on = p.readUserDebugParameter(self.przycisk_uczenie_on)
+        current_click = self.uczenie_on
+        
+        if current_click > self.previous_click:
+            self.previous_click = current_click
+            
+            if not self.is_playing:
+                self.uczenie_toggle = not self.uczenie_toggle
+                
+                if self.uczenie_toggle:
+                    print("Tryb uczenia włączony (Nagrywanie)")
+                    self.trajectory = []
+                else:
+                    print(f"Tryb uczenia wyłączony. Zapisano {len(self.trajectory)} klatek ruchu.")
+
+    def update(self):
+        
+        self.przycisk_uczenia()
+        play_clicks = p.readUserDebugParameter(self.btn_play)
+        if play_clicks > self.prev_play_clicks:
+            self.prev_play_clicks = play_clicks
+            
+            if not self.uczenie_toggle and len(self.trajectory) > 0 and not self.is_playing:
+                self.is_playing = True
+                self.playback_step = 0
+                self.prep_step = 180 
+
+        if self.uczenie_toggle:
+            current_state = []
+            for joint_idx in self.robot.movable_joints:
+                joint_state = p.getJointState(self.robot.robot_id, joint_idx)
+                current_state.append(joint_state[0])
+            self.trajectory.append(current_state)
+
+        elif self.is_playing:
+            if self.prep_step > 0:
+                start_state = self.trajectory[0]
+                self._apply_state(start_state)
+                self.prep_step -= 1
+                if self.prep_step == 0:
+                    print("Odtwarzanie sekwencji")
+            else:
+                if self.playback_step < len(self.trajectory):
+                    state = self.trajectory[self.playback_step]
+                    self._apply_state(state)
+                    self.playback_step += 1
+                else:
+                    print("Odtwarzanie zakończone.")
+                    self.is_playing = False
+
+    def _apply_state(self, state):
+        for i, joint_idx in enumerate(self.robot.movable_joints):
+            p.setJointMotorControl2(
+                bodyIndex=self.robot.robot_id,
+                jointIndex=joint_idx,
+                controlMode=p.POSITION_CONTROL,
+                targetPosition=state[i],
+                force=400
+            )
+
 
 class Simulation:
     def __init__(self):
@@ -137,33 +214,16 @@ class Simulation:
             print("Nie udało się wczytać kostki.")
             
         self.robot = None
-        
+        self.uczenie = None
         self.camera = Camera()
         p.configureDebugVisualizer(p.COV_ENABLE_RGB_BUFFER_PREVIEW, 0)
         p.configureDebugVisualizer(p.COV_ENABLE_DEPTH_BUFFER_PREVIEW, 0)
         p.configureDebugVisualizer(p.COV_ENABLE_SEGMENTATION_MARK_PREVIEW, 0)
-        #Do uczenia
-        self.previous_click=0
-        self.uczenie_toggle=False
-        self.przycisk_uczenie_on=p.addUserDebugParameter("Tryb Uczenia", 1, 0, 0)
+        
     def add_robot(self, robot):
         self.robot = robot
-                            
-    def przycisk_uczenia(self):
-        self.uczenie_on=p.readUserDebugParameter(self.przycisk_uczenie_on)
-        current_click=self.uczenie_on
-        if current_click>self.previous_click:
-            self.previous_click=current_click
-            self.uczenie_toggle = not self.uczenie_toggle
-            if self.uczenie_toggle:
-                print("Tryb uczenia włączony")
-            else:
-                print("Tryb uczenia wyłączony")
-                            
-    def tryb_uczenia(self):
-        self.przycisk_uczenia()
-        if self.uczenie_toggle:
-            p.readUserDebugParameter(self.przycisk_uczenie_on)
+        self.uczenie=tryb_uczenia(self.robot)
+                                                
 
     def run(self):
         # Główna pętla symualacji    
@@ -172,9 +232,13 @@ class Simulation:
             while True:
                 p.stepSimulation()
                 self.camera.handle_camera()
+                
                 if self.robot is not None:
-                    self.robot.update_from_sliders()
-                #self.tryb_uczenia()
+                    if self.uczenie.is_playing:
+                        pass
+                    else:
+                        self.robot.update_from_sliders()
+                self.uczenie.update()   
                 time.sleep(1.0 / 240.0)
                 
         except KeyboardInterrupt:
