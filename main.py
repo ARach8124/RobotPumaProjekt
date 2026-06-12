@@ -369,7 +369,7 @@ class Simulation:
         self.physicsClient = p.connect(p.GUI)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.setGravity(0, 0, -9.81)
-        self.plane_id = p.loadURDF("plane.urdf")
+        self.plane_id = p.loadURDF("podloga.urdf", useFixedBase=True)
         
         try:
             self.cube_id = p.loadURDF("kostka.urdf", [0, -0.4, 0.4])
