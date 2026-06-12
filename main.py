@@ -53,13 +53,13 @@ class Robot:
                     slider_min = -math.pi
                     slider_max = math.pi
                     
-                slider = p.addUserDebugParameter(f"FK: {joint_name}", slider_min, slider_max, 0)
+                slider = p.addUserDebugParameter(f"Kąt [rad]: {joint_name}", slider_min, slider_max, 0)
                 self.sliders.append(slider)
                 
         # Setup suwaków dla kinematyki odwrotnej
-        self.ik_x_slider = p.addUserDebugParameter("IK_Target_X", -1.2, 1.2, 0.4)
-        self.ik_y_slider = p.addUserDebugParameter("IK_Target_Y", -1.2, 1.2, 0.0)
-        self.ik_z_slider = p.addUserDebugParameter("IK_Target_Z", 0.0, 1.6, 0.6)
+        self.ik_x_slider = p.addUserDebugParameter("KO_X", -1.2, 1.2, 0.4)
+        self.ik_y_slider = p.addUserDebugParameter("KO_Y", -1.2, 1.2, 0.0)
+        self.ik_z_slider = p.addUserDebugParameter("KO_Z", 0.0, 1.6, 0.6)
         
 #Zmiana trybu między sterowanie kątami i kinematyką odwrotną
     def toggle_mode(self):
