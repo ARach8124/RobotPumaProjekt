@@ -53,7 +53,7 @@ class Robot:
                     slider_min = -math.pi
                     slider_max = math.pi
                     
-                slider = p.addUserDebugParameter(f"Kąt [rad]: {joint_name}", slider_min, slider_max, 0)
+                slider = p.addUserDebugParameter(f"Kat [rad]: {joint_name}", slider_min, slider_max, 0)
                 self.sliders.append(slider)
                 
         # Setup suwaków dla kinematyki odwrotnej
