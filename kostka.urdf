@@ -6,7 +6,6 @@
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="1.0"/>
-      <!-- Recalculated for 0.07m x 0.07m x 0.07m at 1.0 kg -->
       <inertia ixx="0.0008166" ixy="0.0" ixz="0.0" 
                iyy="0.0008166" iyz="0.0" 
                izz="0.0008166"/>
