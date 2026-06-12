@@ -53,13 +53,13 @@ class Robot:
                     slider_min = -math.pi
                     slider_max = math.pi
                     
-                slider = p.addUserDebugParameter(f"Kat [rad]: {joint_name}", slider_min, slider_max, 0)
+                slider = p.addUserDebugParameter(f"_Kat[rad]:{joint_name}", slider_min, slider_max, 0)
                 self.sliders.append(slider)
                 
         # Setup suwaków dla kinematyki odwrotnej
-        self.ik_x_slider = p.addUserDebugParameter("KO_X", -1.2, 1.2, 0.4)
-        self.ik_y_slider = p.addUserDebugParameter("KO_Y", -1.2, 1.2, 0.0)
-        self.ik_z_slider = p.addUserDebugParameter("KO_Z", 0.0, 1.6, 0.6)
+        self.ik_x_slider = p.addUserDebugParameter("_KO_X", -1.2, 1.2, 0.4)
+        self.ik_y_slider = p.addUserDebugParameter("_KO_Y", -1.2, 1.2, 0.0)
+        self.ik_z_slider = p.addUserDebugParameter("_KO_Z", 0.0, 1.6, 0.6)
         
 #Zmiana trybu między sterowanie kątami i kinematyką odwrotną
     def toggle_mode(self):
@@ -259,13 +259,13 @@ class tryb_uczenia:
         
         self.previous_click = 0
         self.uczenie_toggle = False
-        self.przycisk_uczenie_on = p.addUserDebugParameter("Tryb Uczenia", 1, 0, 0)
+        self.przycisk_uczenie_on = p.addUserDebugParameter("_Tryb Uczenia", 1, 0, 0)
         
-        self.btn_play = p.addUserDebugParameter("Odtworz Nagranie", 1, 0, 0)
+        self.btn_play = p.addUserDebugParameter("_Odtworz Nagranie", 1, 0, 0)
         self.prev_play_clicks = 0
         
 
-        self.btn_reset_cube = p.addUserDebugParameter("Resetuj Klocek", 1, 0, 0)
+        self.btn_reset_cube = p.addUserDebugParameter("_Resetuj Klocek", 1, 0, 0)
         self.prev_reset_clicks = 0
         
         self.is_playing = False
