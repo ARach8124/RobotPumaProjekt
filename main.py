@@ -148,9 +148,6 @@ class Robot:
 #Wykonanie chwytu
     def grab(self, target_id):
         ee_idx = self.get_link_index("manipulator_link")
-        if ee_idx == -1:
-            print("Manipulator link not found!")
-            return
 
         ee_state = p.getLinkState(self.robot_id, ee_idx)
         ee_pos = ee_state[4] 
@@ -187,6 +184,7 @@ class Robot:
         if self.grab_constraint_id is not None:
             p.removeConstraint(self.grab_constraint_id)
             self.grab_constraint_id = None
+            print("Puszczam obiekt!")
             
         for i in range(-1, p.getNumJoints(self.robot_id)):
             p.setCollisionFilterPair(self.robot_id, target_id, i, -1, enableCollision=1)
