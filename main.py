@@ -209,13 +209,12 @@ class Camera:
         self.custom_camera_enabled = False
         p.resetDebugVisualizerCamera(self.dist, self.yaw, self.pitch, self.target_pos)
     
-    def toggle_c(self):
-        keys = p.getKeyboardEvents()
+    def toggle_c(self, keys):
         if ord('c') in keys:  
             if keys[ord('c')] & p.KEY_WAS_TRIGGERED:
                 self.custom_camera_enabled = not self.custom_camera_enabled
-    def handle_camera(self):
-        self.toggle_c()
+    def handle_camera(self,keys):
+        self.toggle_c(keys)
         if self.custom_camera_enabled == True:
             if self.custom_camera_enabled:
                 mouse_events = p.getMouseEvents()
@@ -356,9 +355,7 @@ class Simulation:
         self.uczenie=tryb_uczenia(self.robot)
                                                 
 
-    def handle_keyboard(self):
-        keys = p.getKeyboardEvents()
-        
+    def handle_keyboard(self, keys):
         space_key = ord(' ')
         m_key = ord('m')
         
@@ -375,16 +372,17 @@ class Simulation:
             print(" [M]      - Przełącz tryb FK / IK\n")
             
             while True:
-                self.handle_keyboard()
-                p.stepSimulation()
-                self.camera.handle_camera()
+                keys = p.getKeyboardEvents()
+                self.handle_keyboard(keys)
+                self.camera.handle_camera(keys)
                 
                 if self.robot is not None:
                     if self.uczenie.is_playing:
                         pass
                     else:
                         self.robot.update_from_sliders()
-                self.uczenie.update()   
+                self.uczenie.update()
+                p.stepSimulation()   
                 time.sleep(1.0 / 240.0)
                 
         except KeyboardInterrupt:
