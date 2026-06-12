@@ -84,7 +84,6 @@ class Robot:
         D = max(-1.0, min(1.0, D))
         
         best_t2, best_t3 = 0, 0
-        valid_solution_found = False
         
         for sign in [1, -1]:
             t3 = sign * math.acos(D)
@@ -154,7 +153,7 @@ class Robot:
         dist = math.sqrt(sum((a - b)**2 for a, b in zip(ee_pos, target_pos)))
 
         if dist < 0.15:
-            print("Chwytam obiekt w jego obecnej pozycji!")
+            print("Chwytam obiekt!")
             for i in range(-1, p.getNumJoints(self.robot_id)):
                 p.setCollisionFilterPair(self.robot_id, target_id, i, -1, enableCollision=0)
 
@@ -172,16 +171,6 @@ class Robot:
                 childFramePosition=[0, 0, 0],
                 parentFrameOrientation=rel_ori)
             
-        for i, joint_idx in enumerate(self.movable_joints):
-            target_angle = p.readUserDebugParameter(self.sliders[i])
-            # Funkcja PyBullet do sterowania pozycją
-            p.setJointMotorControl2(
-                bodyIndex=self.robot_id,
-                jointIndex=joint_idx,
-                controlMode=p.POSITION_CONTROL,
-                targetPosition=target_angle,
-                force=400
-            )
             self.is_grabbing = True
         else:
             print("Obiekt jest za daleko!")
@@ -195,6 +184,7 @@ class Robot:
             p.setCollisionFilterPair(self.robot_id, target_id, i, -1, enableCollision=1)
             
         self.is_grabbing = False
+
 
 class Camera:
     def __init__(self):
@@ -213,48 +203,49 @@ class Camera:
         if ord('c') in keys:  
             if keys[ord('c')] & p.KEY_WAS_TRIGGERED:
                 self.custom_camera_enabled = not self.custom_camera_enabled
-    def handle_camera(self,keys):
-        self.toggle_c(keys)
-        if self.custom_camera_enabled == True:
-            if self.custom_camera_enabled:
-                mouse_events = p.getMouseEvents()
-                for event in mouse_events:
-                    event_type = event[0]
-                    mouse_x = event[1]
-                    mouse_y = event[2]
-                    
-                    if event_type == 2:
-                        button_index = event[3]
-                        button_state = event[4]
-            
-                        if button_index == 0:
-                            if button_state == 3:       
-                                self.lmb_pressed = True
-                                self.prev_x = mouse_x
-                                self.prev_y = mouse_y
-                            elif button_state == 4:     
-                                self.lmb_pressed = False
 
-                    elif event_type == 1:
-                        # Zmieniamy parametry yaw/pitch TYLKO, gdy system jest włączony
-                        if self.lmb_pressed and self.custom_camera_enabled:
-                            dx = mouse_x - self.prev_x
-                            dy = mouse_y - self.prev_y
+    def handle_camera(self, keys):
+        self.toggle_c(keys)
+        if self.custom_camera_enabled:
+            mouse_events = p.getMouseEvents()
+            for event in mouse_events:
+                event_type = event[0]
+                mouse_x = event[1]
+                mouse_y = event[2]
                 
-                            self.yaw -= dx * self.sensitivity
-                            self.pitch -= dy * self.sensitivity
-                
-                            if self.pitch > 89.0: self.pitch = 89.0
-                            if self.pitch < -89.0: self.pitch = -89.0
-                
-                            p.resetDebugVisualizerCamera(self.dist, self.yaw, self.pitch, self.target_pos)
-                            
+                if event_type == 2:
+                    button_index = event[3]
+                    button_state = event[4]
+            
+                    if button_index == 0:
+                        if button_state == 3:       
+                            self.lmb_pressed = True
                             self.prev_x = mouse_x
                             self.prev_y = mouse_y
-        
+                        elif button_state == 4:     
+                            self.lmb_pressed = False
+
+                elif event_type == 1:
+                    if self.lmb_pressed and self.custom_camera_enabled:
+                        dx = mouse_x - self.prev_x
+                        dy = mouse_y - self.prev_y
+                
+                        self.yaw -= dx * self.sensitivity
+                        self.pitch -= dy * self.sensitivity
+                
+                        if self.pitch > 89.0: self.pitch = 89.0
+                        if self.pitch < -89.0: self.pitch = -89.0
+                
+                        p.resetDebugVisualizerCamera(self.dist, self.yaw, self.pitch, self.target_pos)
+                        
+                        self.prev_x = mouse_x
+                        self.prev_y = mouse_y
+
+
 class tryb_uczenia:
-    def __init__(self, robot):
+    def __init__(self, robot, target_id):
         self.robot = robot
+        self.target_id = target_id
         
         self.previous_click = 0
         self.uczenie_toggle = False
@@ -262,11 +253,18 @@ class tryb_uczenia:
         
         self.btn_play = p.addUserDebugParameter("Odtworz Nagranie", 1, 0, 0)
         self.prev_play_clicks = 0
+        
+        # NOWY PRZYCISK: Resetowanie klocka
+        self.btn_reset_cube = p.addUserDebugParameter("Resetuj Klocek", 1, 0, 0)
+        self.prev_reset_clicks = 0
+        
         self.is_playing = False
         
         self.trajectory = []
         self.playback_step = 0
         self.prep_step = 0  
+        
+        self.cube_start_state = None # Miejsce na zapisanie pozycji kostki
 
     def przycisk_uczenia(self):
         self.uczenie_on = p.readUserDebugParameter(self.przycisk_uczenie_on)
@@ -281,12 +279,30 @@ class tryb_uczenia:
                 if self.uczenie_toggle:
                     print("Tryb uczenia włączony (Nagrywanie)")
                     self.trajectory = []
+                    # ZAPISUJEMY POZYCJĘ KOSTKI NA STARCIE NAGRANIA
+                    if self.target_id is not None:
+                        pos, ori = p.getBasePositionAndOrientation(self.target_id)
+                        self.cube_start_state = (pos, ori)
+                        print("Zapisano pozycję startową klocka.")
                 else:
                     print(f"Tryb uczenia wyłączony. Zapisano {len(self.trajectory)} klatek ruchu.")
 
     def update(self):
-        
         self.przycisk_uczenia()
+        
+        # OBSŁUGA RĘCZNEGO RESETU KLOCKA
+        reset_clicks = p.readUserDebugParameter(self.btn_reset_cube)
+        if reset_clicks > self.prev_reset_clicks:
+            self.prev_reset_clicks = reset_clicks
+            
+            if self.target_id is not None and self.cube_start_state is not None:
+                p.resetBasePositionAndOrientation(self.target_id, self.cube_start_state[0], self.cube_start_state[1])
+                p.resetBaseVelocity(self.target_id, [0,0,0], [0,0,0])
+                print("Zresetowano pozycję klocka do momentu rozpoczęcia nagrywania.")
+            else:
+                print("Brak zapisanej pozycji klocka (musisz najpierw rozpocząć nagrywanie).")
+
+        # OBSŁUGA ODTWARZANIA
         play_clicks = p.readUserDebugParameter(self.btn_play)
         if play_clicks > self.prev_play_clicks:
             self.prev_play_clicks = play_clicks
@@ -294,40 +310,58 @@ class tryb_uczenia:
             if not self.uczenie_toggle and len(self.trajectory) > 0 and not self.is_playing:
                 self.is_playing = True
                 self.playback_step = 0
-                self.prep_step = 180 
+                self.prep_step = 120 
+                
+                # Jeśli trzymamy kostkę przed odtworzeniem nagrania, puszczamy ją
+                if self.robot.is_grabbing:
+                    self.robot.release(self.target_id)
 
+        # NAGRYWANIE
         if self.uczenie_toggle:
-            current_state = []
+            current_state = {
+                'joints': [],
+                'is_grabbing': self.robot.is_grabbing
+            }
             for joint_idx in self.robot.movable_joints:
                 joint_state = p.getJointState(self.robot.robot_id, joint_idx)
-                current_state.append(joint_state[0])
+                current_state['joints'].append(joint_state[0])
             self.trajectory.append(current_state)
 
+        # ODTWARZANIE WŁAŚCIWE
         elif self.is_playing:
             if self.prep_step > 0:
                 start_state = self.trajectory[0]
-                self._apply_state(start_state)
+                # Podjeżdżamy na start nagrania (bez łapania kostki)
+                self._apply_state(start_state, apply_grab=False) 
                 self.prep_step -= 1
                 if self.prep_step == 0:
                     print("Odtwarzanie sekwencji")
             else:
                 if self.playback_step < len(self.trajectory):
                     state = self.trajectory[self.playback_step]
-                    self._apply_state(state)
+                    # Właściwe odtwarzanie - zmieniamy kąty i łapiemy/puszczamy kostkę
+                    self._apply_state(state, apply_grab=True)
                     self.playback_step += 1
                 else:
                     print("Odtwarzanie zakończone.")
                     self.is_playing = False
 
-    def _apply_state(self, state):
+    def _apply_state(self, state, apply_grab=True):
         for i, joint_idx in enumerate(self.robot.movable_joints):
             p.setJointMotorControl2(
                 bodyIndex=self.robot.robot_id,
                 jointIndex=joint_idx,
                 controlMode=p.POSITION_CONTROL,
-                targetPosition=state[i],
+                targetPosition=state['joints'][i],
                 force=400
             )
+            
+        if apply_grab:
+            recorded_grab = state['is_grabbing']
+            if recorded_grab and not self.robot.is_grabbing:
+                self.robot.grab(self.target_id)
+            elif not recorded_grab and self.robot.is_grabbing:
+                self.robot.release(self.target_id)
 
 
 class Simulation:
@@ -352,10 +386,14 @@ class Simulation:
         
     def add_robot(self, robot):
         self.robot = robot
-        self.uczenie=tryb_uczenia(self.robot)
-                                                
+        # Dodany argument self.cube_id (aby tryb uczenia widział kostkę)
+        self.uczenie = tryb_uczenia(self.robot, self.cube_id)
 
     def handle_keyboard(self, keys):
+        # Blokujemy sterowanie ręczne podczas odtwarzania nagrania
+        if self.uczenie and self.uczenie.is_playing:
+            return
+
         space_key = ord(' ')
         m_key = ord('m')
         
@@ -369,7 +407,8 @@ class Simulation:
         try:
             print("\nSterowanie:")
             print(" [SPACJA] - Chwyć / Puść kostkę")
-            print(" [M]      - Przełącz tryb FK / IK\n")
+            print(" [M]      - Przełącz tryb FK / IK")
+            print(" [C]      - Aktywuj sterowanie kamerą (przytrzymaj LPM)\n")
             
             while True:
                 keys = p.getKeyboardEvents()
@@ -377,11 +416,12 @@ class Simulation:
                 self.camera.handle_camera(keys)
                 
                 if self.robot is not None:
-                    if self.uczenie.is_playing:
-                        pass
-                    else:
+                    # Ręczne suwaki działają TYLKO gdy nie odtwarzamy nagrania
+                    if not self.uczenie.is_playing:
                         self.robot.update_from_sliders()
+                        
                 self.uczenie.update()
+                
                 p.stepSimulation()   
                 time.sleep(1.0 / 240.0)
                 
@@ -392,9 +432,6 @@ class Simulation:
 
     def cleanup(self):
         p.disconnect()
-    
-    
-    
 
 if __name__ == "__main__":
     sim = Simulation()
